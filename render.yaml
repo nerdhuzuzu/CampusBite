@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: campus-canteen-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate && npm run build:api
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: AI_SERVICE_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: campus-canteen-ai
+    runtime: python
+    rootDir: apps/ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: AI_SERVICE_SECRET
+        sync: false
+      - key: BACKEND_URL
+        sync: false

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+**/.env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# Build output
+dist/
+build/
+*.js.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AI models
+apps/ai-service/models/*.pkl
+apps/ai-service/models/*.joblib
+apps/ai-service/models/*.pt
+apps/ai-service/models/*.onnx
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# Coverage
+coverage/
+.nyc_output/

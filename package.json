@@ -1,0 +1,35 @@
+{
+  "name": "campus-canteen",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:api": "npm run dev --workspace @campus-canteen/api",
+    "dev:ai": "cd apps/ai-service && python -m uvicorn app.main:app --reload --port 8000",
+    "build:web": "npm run build --workspace web",
+    "build:api": "npm run build --workspace @campus-canteen/api",
+    "typecheck:api": "npm run lint --workspace @campus-canteen/api",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "test:api": "npm test --workspace @campus-canteen/api",
+    "test:web": "npm test --workspace web"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

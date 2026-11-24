@@ -1,0 +1,629 @@
+// =============================================================================
+// Campus Canteen Management System — Prisma Schema
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  STUDENT
+  MANAGER
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PLACED
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  WALLET
+  PAY_AT_COUNTER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum InventoryMovementType {
+  PURCHASE
+  CONSUMPTION
+  WASTAGE
+  ADJUSTMENT
+  RESERVATION
+  RELEASE
+}
+
+enum CrowdLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DietaryType {
+  VEG
+  NON_VEG
+  VEGAN
+  EGG
+}
+
+// ── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole
+  firstName     String
+  lastName      String
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  studentProfile  StudentProfile?
+  managerProfile  ManagerProfile?
+  orders          Order[]
+  reviews         Review[]
+  chatConversations ChatConversation[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]       @relation("AuditUser")
+  preferences     UserPreference?
+
+  @@index([email])
+  @@index([role])
+}
+
+model StudentProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentNo    String?  @unique
+  department      String?
+  year            Int?
+  dietaryType     DietaryType @default(VEG)
+  allergies       String?  @db.Text // JSON array stored as text
+  monthlyBudget   Decimal? @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  walletTransactions WalletTransaction[]
+}
+
+model ManagerProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model UserPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favoriteCategories String? @db.Text // JSON array
+  spiceLevel        Int?     @default(3) // 1-5
+  preferVeg         Boolean  @default(true)
+  maxBudget         Decimal? @db.Decimal(10, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ── Outlets ──────────────────────────────────────────────────────────────────
+
+model Outlet {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  description   String?  @db.Text
+  imageUrl      String?
+  locationX     Float?   // For campus map
+  locationY     Float?   // For campus map
+  address       String?
+  phone         String?
+  openingTime   String   @default("08:00")
+  closingTime   String   @default("20:00")
+  isActive      Boolean  @default(true)
+  isOpen        Boolean  @default(true)
+  avgPrepTime   Int      @default(15) // minutes
+  activeCounters Int     @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime? // soft delete
+
+  managers       ManagerProfile[]
+  menuItems      MenuItem[]
+  orders         Order[]
+  ingredients    Ingredient[]
+  qrCodes        QRCode[]
+  crowdSnapshots CrowdSnapshot[]
+  queuePredictions QueuePrediction[]
+  demandForecasts  DemandForecast[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+// ── Menu ─────────────────────────────────────────────────────────────────────
+
+model FoodCategory {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  menuItems   MenuItem[]
+}
+
+model MenuItem {
+  id              String   @id @default(uuid())
+  outletId        String
+  outlet          Outlet   @relation(fields: [outletId], references: [id])
+  categoryId      String
+  category        FoodCategory @relation(fields: [categoryId], references: [id])
+  name            String
+  slug            String
+  description     String?  @db.Text
+  imageUrl        String?
+  price           Decimal  @db.Decimal(10, 2)
+  dietaryType     DietaryType @default(VEG)
+  calories        Int?
+  protein         Float?
+  isAvailable     Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  preparationTime Int      @default(10) // minutes
+  popularityScore Float    @default(0)
+  totalOrders     Int      @default(0)
+  avgRating       Float    @default(0)
+  totalRatings    Int      @default(0)
+  tags            String?  @db.Text // JSON array
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  orderItems    OrderItem[]
+  reviews       Review[]
+  recipes       Recipe[]
+  availability  MenuItemAvailability?
+  demandForecasts DemandForecast[]
+
+  @@unique([outletId, slug])
+  @@index([outletId])
+  @@index([categoryId])
+  @@index([isAvailable])
+  @@index([dietaryType])
+  @@index([price])
+}
+
+model MenuItemAvailability {
+  id           String   @id @default(uuid())
+  menuItemId   String   @unique
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  dailyLimit   Int?     // null = unlimited
+  currentCount Int      @default(0)
+  availableFrom String? // time HH:MM
+  availableTo   String? // time HH:MM
+  daysAvailable String? @db.Text // JSON array: ["MON","TUE","WED","THU","FRI","SAT","SUN"]
+  updatedAt    DateTime @updatedAt
+}
+
+// ── Ingredients & Inventory ──────────────────────────────────────────────────
+
+model Ingredient {
+  id              String   @id @default(uuid())
+  outletId        String
+  outlet          Outlet   @relation(fields: [outletId], references: [id])
+  name            String
+  unit            String   // kg, g, ml, L, pcs
+  currentStock    Decimal  @db.Decimal(10, 3) @default(0)
+  reservedStock   Decimal  @db.Decimal(10, 3) @default(0)
+  minStockLevel   Decimal  @db.Decimal(10, 3) @default(0)
+  costPerUnit     Decimal  @db.Decimal(10, 2) @default(0)
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  recipes          Recipe[]
+  movements        InventoryMovement[]
+  stockReservations StockReservation[]
+  purchases        Purchase[]
+
+  @@unique([outletId, name])
+  @@index([outletId])
+}
+
+model Recipe {
+  id            String   @id @default(uuid())
+  menuItemId    String
+  menuItem      MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+  quantity      Decimal  @db.Decimal(10, 3) // amount needed per 1 item
+  unit          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([menuItemId, ingredientId])
+}
+
+model InventoryMovement {
+  id            String              @id @default(uuid())
+  ingredientId  String
+  ingredient    Ingredient          @relation(fields: [ingredientId], references: [id])
+  type          InventoryMovementType
+  quantity      Decimal             @db.Decimal(10, 3)
+  reason        String?
+  referenceId   String?             // order ID, purchase ID, etc.
+  performedBy   String?
+  createdAt     DateTime            @default(now())
+
+  @@index([ingredientId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model StockReservation {
+  id            String   @id @default(uuid())
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id])
+  quantity      Decimal  @db.Decimal(10, 3)
+  isReleased    Boolean  @default(false)
+  isConsumed    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([ingredientId])
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ingredients Ingredient[]
+  purchases   Purchase[]
+}
+
+model Purchase {
+  id            String   @id @default(uuid())
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id])
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  quantity      Decimal  @db.Decimal(10, 3)
+  unitCost      Decimal  @db.Decimal(10, 2)
+  totalCost     Decimal  @db.Decimal(10, 2)
+  purchaseDate  DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([ingredientId])
+  @@index([purchaseDate])
+}
+
+// ── Orders ───────────────────────────────────────────────────────────────────
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique // human-readable: CC-20261123-0001
+  studentId       String
+  student         User        @relation(fields: [studentId], references: [id])
+  outletId        String
+  outlet          Outlet      @relation(fields: [outletId], references: [id])
+  status          OrderStatus @default(PLACED)
+  subtotal        Decimal     @db.Decimal(10, 2)
+  tax             Decimal     @db.Decimal(10, 2) @default(0)
+  total           Decimal     @db.Decimal(10, 2)
+  notes           String?     @db.Text
+  idempotencyKey  String?     @unique
+  estimatedReady  DateTime?
+  actualReady     DateTime?
+  cancelReason    String?
+  rejectReason    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  payment         Payment?
+  refund          Refund?
+  stockReservations StockReservation[]
+
+  @@index([studentId])
+  @@index([outletId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  name        String   // snapshot at order time
+  price       Decimal  @db.Decimal(10, 2) // snapshot at order time
+  quantity    Int
+  subtotal    Decimal  @db.Decimal(10, 2)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  changedBy String?     // userId
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// ── Payments ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id])
+  method          PaymentMethod @default(PAY_AT_COUNTER)
+  status          PaymentStatus @default(PENDING)
+  amount          Decimal       @db.Decimal(10, 2)
+  transactionRef  String?       // UPI ref, cash receipt, etc.
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Refund {
+  id        String   @id @default(uuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  amount    Decimal  @db.Decimal(10, 2)
+  reason    String?
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WalletTransaction {
+  id              String   @id @default(uuid())
+  studentProfileId String
+  studentProfile  StudentProfile @relation(fields: [studentProfileId], references: [id])
+  type            String   // DEBIT, CREDIT, REFUND
+  amount          Decimal  @db.Decimal(10, 2)
+  description     String?
+  referenceId     String?  // orderId
+  category        String?  // FOOD, BEVERAGE, SNACK
+  createdAt       DateTime @default(now())
+
+  @@index([studentProfileId])
+  @@index([createdAt])
+}
+
+// ── Reviews ──────────────────────────────────────────────────────────────────
+
+model Review {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  menuItemId  String
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  rating      Int      // 1-5
+  comment     String?  @db.Text
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, menuItemId])
+  @@index([menuItemId])
+}
+
+// ── QR Codes ─────────────────────────────────────────────────────────────────
+
+model QRCode {
+  id        String   @id @default(uuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id])
+  token     String   @unique // signed token for verification
+  isActive  Boolean  @default(true)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
+  @@index([token])
+}
+
+// ── Crowd & Queue ────────────────────────────────────────────────────────────
+
+model CrowdSnapshot {
+  id          String     @id @default(uuid())
+  outletId    String
+  outlet      Outlet     @relation(fields: [outletId], references: [id])
+  peopleCount Int
+  crowdLevel  CrowdLevel
+  isSimulated Boolean    @default(true) // clearly label demo data
+  source      String     @default("SIMULATED") // CAMERA, SIMULATED, MANUAL
+  createdAt   DateTime   @default(now())
+
+  @@index([outletId])
+  @@index([createdAt])
+}
+
+model QueuePrediction {
+  id              String   @id @default(uuid())
+  outletId        String
+  outlet          Outlet   @relation(fields: [outletId], references: [id])
+  estimatedWait   Int      // minutes
+  queueLength     Int
+  activeOrders    Int
+  confidence      Float    @default(0.5)
+  isEstimate      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([outletId])
+  @@index([createdAt])
+}
+
+// ── AI & Forecasting ─────────────────────────────────────────────────────────
+
+model DemandForecast {
+  id          String    @id @default(uuid())
+  outletId    String
+  outlet      Outlet    @relation(fields: [outletId], references: [id])
+  menuItemId  String?
+  menuItem    MenuItem? @relation(fields: [menuItemId], references: [id])
+  forecastDate DateTime
+  predictedDemand Int
+  actualDemand   Int?
+  confidence  Float     @default(0.5)
+  modelVersion String?
+  isSynthetic Boolean   @default(true) // label synthetic predictions
+  createdAt   DateTime  @default(now())
+
+  @@index([outletId])
+  @@index([forecastDate])
+}
+
+model ModelVersion {
+  id          String   @id @default(uuid())
+  modelName   String   // recommendation, forecasting, crowd
+  version     String
+  metrics     String?  @db.Text // JSON: { mae, rmse, accuracy }
+  filePath    String?
+  isActive    Boolean  @default(true)
+  trainedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([modelName])
+}
+
+// ── Chatbot ──────────────────────────────────────────────────────────────────
+
+model ChatConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role            String   // user, assistant, system
+  content         String   @db.Text
+  toolCalls       String?  @db.Text // JSON array of tool calls
+  metadata        String?  @db.Text // JSON
+  createdAt       DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model AIToolLog {
+  id          String   @id @default(uuid())
+  toolName    String
+  input       String?  @db.Text
+  output      String?  @db.Text
+  error       String?  @db.Text
+  durationMs  Int?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([toolName])
+  @@index([createdAt])
+}
+
+// ── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String   @db.Text
+  type      String   // ORDER_UPDATE, LOW_STOCK, PROMOTION, SYSTEM
+  isRead    Boolean  @default(false)
+  metadata  String?  @db.Text // JSON
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ── Audit ────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation("AuditUser", fields: [userId], references: [id])
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
+  entity      String   // User, Order, MenuItem, etc.
+  entityId    String?
+  details     String?  @db.Text // JSON with before/after
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}

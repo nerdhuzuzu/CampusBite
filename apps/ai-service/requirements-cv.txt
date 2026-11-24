@@ -1,0 +1,4 @@
+# Optional heavy dependencies for computer vision features
+# Install only when crowd detection with YOLO is needed
+opencv-python-headless>=4.8.0
+ultralytics>=8.0.0
