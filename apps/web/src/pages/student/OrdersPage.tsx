@@ -55,6 +55,7 @@ export function StudentOrdersPage() {
   const ordersQuery = useQuery<Order[]>({
     queryKey: ['student-orders'],
     queryFn: async () => (await api.get('/orders/my')).data.data ?? [],
+    refetchInterval: 8000,
   });
 
   // Real-time Socket.IO subscription for order status updates

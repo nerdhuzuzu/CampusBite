@@ -10,18 +10,25 @@ const rootDir = path.resolve(__dirname, "..", "..", "..", "..");
 dotenv.config({ path: path.join(rootDir, ".env") });
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DATABASE_URL: z
+    .string()
+    .min(1, "DATABASE_URL is required")
+    .default("mysql://root:password@localhost:3306/campus_canteen"),
   PORT: z.coerce.number().default(5000),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
-  JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  JWT_SECRET: z
+    .string()
+    .min(16)
+    .default("campusbite-production-jwt-secret-key-2026-secure"),
   SESSION_SECRET: z
     .string()
-    .min(16, "SESSION_SECRET must be at least 16 characters"),
-  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
-  BACKEND_URL: z.string().url().default("http://localhost:5000"),
-  AI_SERVICE_URL: z.string().url().default("http://localhost:8000"),
+    .min(16)
+    .default("campusbite-production-session-secret-key-2026-secure"),
+  FRONTEND_URL: z.string().default("http://localhost:5173"),
+  BACKEND_URL: z.string().default("http://localhost:5000"),
+  AI_SERVICE_URL: z.string().default("http://localhost:8000"),
   AI_SERVICE_SECRET: z.string().default("ai-service-dev-secret"),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   COOKIE_SECURE: z

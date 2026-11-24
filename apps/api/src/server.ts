@@ -23,9 +23,10 @@ const httpServer = createServer(app);
 
 // ── Security middleware ─────────────────────────────────────────────────────
 app.use(helmet());
+const allowedOrigins = env.CORS_ORIGINS.split(",").map((o) => o.trim());
 app.use(
   cors({
-    origin: env.CORS_ORIGINS.split(",").map((o) => o.trim()),
+    origin: process.env.VERCEL ? true : allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
@@ -107,8 +108,9 @@ const start = async () => {
   });
 };
 
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   void start();
 }
 
+export default app;
 export { app, httpServer, io };

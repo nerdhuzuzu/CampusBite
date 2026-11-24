@@ -1,12 +1,14 @@
 {
   "name": "campus-canteen",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/web",
     "apps/api",
     "packages/shared"
   ],
   "scripts": {
+    "postinstall": "prisma generate",
     "dev:web": "npm run dev --workspace web",
     "dev:api": "npm run dev --workspace @campus-canteen/api",
     "dev:ai": "cd apps/ai-service && python -m uvicorn app.main:app --reload --port 8000",

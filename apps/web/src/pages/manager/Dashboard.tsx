@@ -142,6 +142,7 @@ export function ManagerDashboard() {
   const ordersQuery = useQuery<Order[]>({
     queryKey: ['manager-orders'],
     queryFn: async () => (await api.get('/manager/orders')).data.data ?? [],
+    refetchInterval: 8000,
   });
 
   const menuQuery = useQuery<MenuItem[]>({
