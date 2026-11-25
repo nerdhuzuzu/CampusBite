@@ -1,0 +1,9 @@
+{
+  "name": "CampusBite — Centralized Campus Dining Platform",
+  "short_name": "CampusBite",
+  "description": "Centralized Campus Food Ordering and Canteen Management Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1c33",
+  "theme_color": "#1e3a5f"
+}

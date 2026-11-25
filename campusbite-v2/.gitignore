@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment & Secrets (NEVER COMMIT)
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Build & Runtime Artifacts
+dist/
+**/dist/
+build/
+**/build/
+*.js.map
+uploads/
+**/uploads/
+*.log
+logs/
+
+# Vercel & Cloud CLI state
+.vercel/
+**/.vercel/
+
+# Local SQL Dumps & Backups
+*.sql.gz
+*.dump
+backups/

@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: campusbite-v2-api
+    runtime: node
+    rootDir: campusbite-v2/backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/v2/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5002
+      - key: V2_DB_NAME
+        value: campusbite_v2
+      - key: V2_DB_SSL
+        value: "true"
+      - key: V2_DATABASE_URL
+        sync: false
+      - key: V2_DB_HOST
+        sync: false
+      - key: V2_DB_PORT
+        value: "4000"
+      - key: V2_DB_USER
+        sync: false
+      - key: V2_DB_PASSWORD
+        sync: false
+      - key: V2_JWT_SECRET
+        generateValue: true
+      - key: V2_REFRESH_SECRET
+        generateValue: true
+      - key: V2_FRONTEND_URL
+        sync: false
+      - key: V2_CORS_ORIGINS
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
