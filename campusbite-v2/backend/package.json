@@ -7,8 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "migrate": "tsx ../../database/seeds/bootstrap_admin.ts --migrate-only",
+    "migrate": "tsx ../database/seeds/bootstrap_admin.ts --migrate-only",
     "bootstrap:admin": "tsx ../database/seeds/bootstrap_admin.ts",
+    "provision:prod": "tsx src/scripts/provision_production_db.ts",
     "test": "vitest run"
   },
   "dependencies": {
